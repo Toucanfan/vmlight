@@ -1,5 +1,5 @@
 from pathlib import Path
-import deploy
+from . import deploy
 
 XENCFG_TEMPLATE = """
 # This configures a PVH rather than PV guest

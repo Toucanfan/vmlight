@@ -4,7 +4,7 @@ import os
 import sys
 import shutil
 
-from xen import XenDeployAgent
+from .xen import XenDeployAgent
 
 
 def get_config():
@@ -14,15 +14,15 @@ def get_config():
     """
     config_dict = {
         "general": {
-            "image_dir": "/var/lib/vmm/images",
-            "instances_dir": "/var/lib/vmm/instances",
+            "image_dir": "/var/lib/vmlight/images",
+            "instances_dir": "/var/lib/vmlight/instances",
         },
         "deploy": {
             "memory": "512",
             "disk_size": "10G",
             "vcpus": "1",
             "type": "xen",
-            "ssh_key_list_file": "/etc/vmm/ssh_key_store",
+            "ssh_key_list_file": "/etc/vmlight/ssh_key_store",
             "default_gateway": "10.10.10.2",
         },
         "xen": {
@@ -32,8 +32,8 @@ def get_config():
     }
 
     config_files = [
-        os.path.expanduser("~/.config/vmm.conf"),  # Local user config
-        "/etc/vmm/vmm.conf",  # Global system config
+        os.path.expanduser("~/.config/vmlight.conf"),  # Local user config
+        "/etc/vmlight/vmlight.conf",  # Global system config
     ]
 
     parser = configparser.ConfigParser()
@@ -127,7 +127,7 @@ def check_environment():
             sys.exit(1)
 
 
-if __name__ == "__main__":
+def main():
     check_environment()
     config = get_config()
     args = parse_args(config)
@@ -136,3 +136,7 @@ if __name__ == "__main__":
         deploy(args, config)
     elif args.command == "list-images":
         list_images(config)
+
+
+if __name__ == "__main__":
+    main()

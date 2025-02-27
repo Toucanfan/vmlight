@@ -1,5 +1,6 @@
 from pathlib import Path
-from utils import sh
+
+from .utils import sh
 
 
 class DeployAgent:
