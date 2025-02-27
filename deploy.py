@@ -85,7 +85,7 @@ class DeployAgent:
         Mount the disk to the mount point.
         """
         self.mount_point.mkdir(parents=True, exist_ok=True)
-        sh(f"mount {self.disk_file} {self.mount_point}")
+        sh(f"guestmount -a {self.disk_file} -m /dev/sda1 {self.mount_point}")
 
     def umount_disk(self):
         """
@@ -100,23 +100,42 @@ class DeployAgent:
         """
         sh(f"rm -rf {self.instance_dir}")
 
-    def deploy_network_config(self):
-        """
-        Deploy the network configuration to the instance.
-        """
-        pass
-
     def deploy_ssh_keys(self):
         """
         Deploy the SSH keys to the instance.
         """
-        pass
+        guest_key_file = self.mount_point / "root/.ssh/authorized_keys"
+        guest_key_file.parent.mkdir(parents=True, exist_ok=True)
+        guest_key_file.touch(exist_ok=True)
+        available_key_file = (
+            Path(self.config["deploy"]["ssh_key_list_file"]).read_text().splitlines()
+        )
+        available_keys = {}
+        ssh_keys = []
+        for line in available_key_file:
+            key_type, _, key_name = line.split(" ")
+            if not key_type in ["ssh-rsa", "ssh-ed25519"]:
+                raise ValueError(f"Invalid key type: {key_type}")
+            available_keys[key_name] = line
+        for name in self.args.deploy["ssh_key"]:
+            if name not in available_keys:
+                raise ValueError(f"SSH key not found: {name}")
+            ssh_keys.append(available_keys[name])
+        guest_key_file.write_text("\n".join(ssh_keys))
 
     def set_instance_hostname(self):
         """
         Set the instance hostname.
         """
-        pass
+        hostname = self.args.deploy["name"]
+        with open(self.mount_point / "etc/hostname", "w") as f:
+            f.write(hostname)
+
+    def deploy_network_config(self):
+        """
+        Deploy the network configuration to the instance.
+        """
+        raise NotImplementedError("deploy_network_config")
 
     def create_instance_config(self):
         """

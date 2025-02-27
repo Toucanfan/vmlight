@@ -2,6 +2,7 @@ import argparse
 import configparser
 import os
 import sys
+import shutil
 
 from xen import XenDeployAgent
 
@@ -21,16 +22,18 @@ def get_config():
             "disk_size": "10G",
             "vcpus": "1",
             "type": "xen",
-            "ssh_key_list_file": "/root/.ssh/authorized_keys",
+            "ssh_key_list_file": "/etc/vmm/ssh_key_store",
+            "default_gateway": "10.10.10.2",
         },
         "xen": {
             "conf_dir": "/etc/xen",
+            "pvgrub_path": "/usr/lib/xen/bin/pvgrub",
         },
     }
 
     config_files = [
         os.path.expanduser("~/.config/vmm.conf"),  # Local user config
-        "/etc/vmm.conf",  # Global system config
+        "/etc/vmm/vmm.conf",  # Global system config
     ]
 
     parser = configparser.ConfigParser()
@@ -86,7 +89,9 @@ def parse_args(config):
         default=config["deploy"]["vcpus"],
         help="Number of CPUs assigned to the instance",
     )
-    deploy_parser.add_argument("--ssh-key", help="SSH key for the instance")
+    deploy_parser.add_argument(
+        "--ssh-key", action="append", help="SSH key for the instance"
+    )
     list_images_parser = subparsers.add_parser(
         "list-images", help="List available images"
     )
@@ -114,7 +119,16 @@ def require_root():
         sys.exit(1)
 
 
+def check_environment():
+    required_binaries = ["guestmount"]
+    for binary in required_binaries:
+        if not shutil.which(binary):
+            print(f"Required binary '{binary}' is not installed, aborting.")
+            sys.exit(1)
+
+
 if __name__ == "__main__":
+    check_environment()
     config = get_config()
     args = parse_args(config)
     if args.command == "deploy":

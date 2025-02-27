@@ -14,7 +14,7 @@ name = "{vm_id}-{name}"
 #uuid = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
 
 # Kernel image to boot
-kernel = "/opt/grub2/lib/grub/pvhgrub"
+kernel = "{pvgrub_path}"
 
 # Initial memory allocation (MB)
 memory = {memory}
@@ -31,7 +31,18 @@ vif = [ 'vifname=vm{vm_id},ip={ip}' ]
 # A list of `diskspec' entries as described in
 # docs/misc/xl-disk-configuration.txt
 disk = [ '{disk_image},{disk_format},xvda,rw' ]
+"""
 
+NETWORK_CONFIG_TEMPLATE = """
+[Match]
+Name=enX0
+
+[Network]
+Address={ip}/32
+Gateway={gateway}
+
+[Route]
+Destination={gateway}/32
 """
 
 
@@ -73,6 +84,7 @@ class XenDeployAgent(deploy.DeployAgent):
                     vcpus=self.args.deploy["vcpus"],
                     ip=self.args.deploy["ip"],
                     disk_image=self.disk_file,
+                    pvgrub_path=self.config["xen"]["pvgrub_path"],
                 )
             )
 
@@ -81,13 +93,14 @@ class XenDeployAgent(deploy.DeployAgent):
         self.xen_autostart_file.symlink_to(self.instance_config_file)
 
     def deploy_network_config(self):
-        pass
-
-    def deploy_ssh_keys(self):
-        pass
-
-    def set_instance_hostname(self):
-        pass
+        network_config_file = self.mount_point / "etc/systemd/network/10-enX0.network"
+        network_config_file.parent.mkdir(parents=True, exist_ok=True)
+        network_config_file.write_text(
+            NETWORK_CONFIG_TEMPLATE.format(
+                ip=self.args.deploy["ip"],
+                gateway=self.config["deploy"]["default_gateway"],
+            )
+        )
 
     def cleanup_backend_specific(self):
         self.instance_config_file.unlink()
