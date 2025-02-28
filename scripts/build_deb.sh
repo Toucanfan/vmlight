@@ -10,6 +10,10 @@ cp -r . $tmpdir/vmlight
 
 pushd $tmpdir/vmlight
 
+# Update the changelog with the current date
+curdate=$(date -R) envsubst < debian/changelog > debian/changelog.tmp
+mv debian/changelog.tmp debian/changelog
+
 # Build the package
 dpkg-buildpackage -us -uc
 

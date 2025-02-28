@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,6 +18,13 @@ vmlight = "vmlight.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+vmlight = ["completions/*"]
+
+# To install the completion file during pip install
+[tool.setuptools.data-files]
+"share/bash-completion/completions" = ["completions/vmlight"]
 
 #[tool.setuptools.data-files]
 #"etc/vmlight" = ["conf/vmlight.conf", "conf/ssh_key_store"]

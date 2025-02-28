@@ -2,4 +2,4 @@ vmlight (0.1.0) unstable; urgency=medium
 
   * Initial release.
 
- -- Troels Folke <troelsmf@gmail.com>  Wed, 01 Mar 2023 12:00:00 +0100 
+ -- Troels Folke <troelsmf@gmail.com>  ${curdate}

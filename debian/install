@@ -1,1 +1,2 @@
-conf/* etc/vmlight/ 
+conf/* etc/vmlight/
+completions/vmlight usr/share/bash-completion/completions/ 

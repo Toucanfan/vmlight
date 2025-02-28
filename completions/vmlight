@@ -1,0 +1,19 @@
+# Bash completion script for vmlight
+_vmlight() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--help --version --config"
+
+    # Add your completion logic here based on your CLI commands
+    case "${prev}" in
+        --config)
+            # Complete with config file paths if needed
+            ;;
+        *)
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            ;;
+    esac
+}
+complete -F _vmlight vmlight 
