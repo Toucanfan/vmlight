@@ -11,11 +11,15 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-]
+dependencies = []
 
 [project.scripts]
 vmlight = "vmlight.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+#[tool.setuptools.data-files]
+#"etc/vmlight" = ["conf/vmlight.conf", "conf/ssh_key_store"]
+#"var/lib/vmlight/images" = []
+#"var/lib/vmlight/instances" = []

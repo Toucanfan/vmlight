@@ -1,0 +1,22 @@
+Source: vmlight
+Section: utils
+Priority: optional
+Maintainer: Troels Folke <troelsmf@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-setuptools
+Standards-Version: 4.5.1
+Homepage: https://github.com/toucanfan/vmlight
+Rules-Requires-Root: no
+
+Package: vmlight
+Architecture: all
+Depends: libguestfs-tools, 
+         ${python3:Depends},
+         ${misc:Depends}
+Description: Lightweight VM management tool
+ vmlight is a tool for managing virtual machines
+ in a lightweight manner. This package provides 
+ the command-line interface and related utilities. 
