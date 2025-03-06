@@ -25,8 +25,8 @@ vmlight = ["completions/*"]
 # To install the completion file during pip install
 [tool.setuptools.data-files]
 "share/bash-completion/completions" = ["completions/vmlight"]
+"etc/vmlight" = ["conf/vmlight.conf", "conf/ssh_key_store"]
 
 #[tool.setuptools.data-files]
-#"etc/vmlight" = ["conf/vmlight.conf", "conf/ssh_key_store"]
 #"var/lib/vmlight/images" = []
 #"var/lib/vmlight/instances" = []
