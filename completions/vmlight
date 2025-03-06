@@ -4,16 +4,84 @@ _vmlight() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help --version --config"
-
-    # Add your completion logic here based on your CLI commands
+    
+    # Main commands
+    commands="deploy ssh-keys image"
+    
+    # Global options
+    global_opts="--help --version --type"
+    
+    # Determine what to complete based on position in command line
     case "${prev}" in
-        --config)
-            # Complete with config file paths if needed
+        vmlight)
+            # Complete with commands and global options
+            COMPREPLY=( $(compgen -W "${commands} ${global_opts}" -- "${cur}") )
+            return 0
             ;;
-        *)
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+        --type)
+            # Complete with available VM types
+            local types="xen kvm systemd-nspawn"
+            COMPREPLY=( $(compgen -W "${types}" -- "${cur}") )
+            return 0
+            ;;
+        deploy)
+            # Options for deploy command
+            local deploy_opts="-i --interactive --name --image --ip --disk-size --memory --vcpus --ssh-key"
+            COMPREPLY=( $(compgen -W "${deploy_opts}" -- "${cur}") )
+            return 0
+            ;;
+        ssh-keys)
+            # Options for ssh-keys command
+            local ssh_key_opts="--add --add-file --remove --list"
+            COMPREPLY=( $(compgen -W "${ssh_key_opts}" -- "${cur}") )
+            return 0
+            ;;
+        image)
+            # Options for image command (currently empty in the code)
+            local image_opts=""
+            COMPREPLY=( $(compgen -W "${image_opts}" -- "${cur}") )
+            return 0
+            ;;
+        # Specific argument value completions
+        --name|--image|--ip|--disk-size|--memory|--vcpus)
+            # These options take arbitrary values, so no specific completions
+            return 0
+            ;;
+        --ssh-key)
+            # Could complete with available SSH keys if we had a way to list them
+            return 0
+            ;;
+        --add-file)
+            # Complete with files, allowing directory traversal
+            compopt -o filenames
+            COMPREPLY=( $(compgen -f -- "${cur}") )
+            return 0
             ;;
     esac
+    
+    # Check for --add-file completion in non-adjacent position
+    for ((i=1; i < ${#COMP_WORDS[@]}-1; i++)); do
+        if [[ "${COMP_WORDS[i]}" == "--add-file" && $((i+1)) == ${COMP_CWORD} ]]; then
+            # Complete with files, allowing directory traversal
+            compopt -o filenames
+            COMPREPLY=( $(compgen -f -- "${cur}") )
+            return 0
+        fi
+    done
+    
+    # Check if we're in a subcommand context
+    for ((i=0; i < ${#COMP_WORDS[@]}; i++)); do
+        case "${COMP_WORDS[i]}" in
+            deploy|ssh-keys|image)
+                # Already handled above with prev=$command
+                return 0
+                ;;
+        esac
+    done
+    
+    # If we're not in any specific context, show commands and global options
+    COMPREPLY=( $(compgen -W "${commands} ${global_opts}" -- "${cur}") )
+    return 0
 }
+
 complete -F _vmlight vmlight 
