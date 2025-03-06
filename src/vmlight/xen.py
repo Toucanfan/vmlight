@@ -47,15 +47,8 @@ Destination={gateway}/32
 """
 
 
-class XenDeployAgent(deploy.DeployManager):
+class XenDeployManager(deploy.DeployManager):
     def __init__(self, args, config):
-        if not Path("/usr/sbin/xl").exists():
-            raise ApplicationError("xl toolstack is not installed.")
-
-        with open("/proc/xen/capabilities", "r") as f:
-            if "control_d" not in f.read():
-                raise ApplicationError("Xen hypervisor is not running.")
-
         self.xenconf_dir = Path(config["xen"]["conf_dir"]).absolute()
         if not self.xenconf_dir.exists():
             raise ApplicationError(

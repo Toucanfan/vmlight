@@ -22,7 +22,7 @@ _vmlight() {
     }
     
     # Main commands
-    commands="deploy ssh-keys image"
+    commands="deploy ssh-keys image vm"
     
     # Global options
     global_opts="--help --version --type"
@@ -58,6 +58,12 @@ _vmlight() {
             COMPREPLY=( $(compgen -W "${image_opts}" -- "${cur}") )
             return 0
             ;;
+        vm)
+            # Options for vm command
+            local vm_opts="--list --start --stop --restart --delete"
+            COMPREPLY=( $(compgen -W "${vm_opts}" -- "${cur}") )
+            return 0
+            ;;
         # Specific argument value completions
         --name|--image|--ip|--disk-size|--memory|--vcpus)
             # These options take arbitrary values, so no specific completions
@@ -91,6 +97,10 @@ _vmlight() {
         --remove)
             # Could complete with available images or keys depending on context
             # We'll use context detection below
+            return 0
+            ;;
+        --start|--stop|--restart|--delete)
+            # Could complete with available VM instance IDs if we had a way to list them
             return 0
             ;;
     esac
@@ -144,7 +154,7 @@ _vmlight() {
     # Check if we're in a subcommand context
     for ((i=0; i < ${#COMP_WORDS[@]}; i++)); do
         case "${COMP_WORDS[i]}" in
-            deploy|ssh-keys|image)
+            deploy|ssh-keys|image|vm)
                 # Already handled above with prev=$command
                 return 0
                 ;;

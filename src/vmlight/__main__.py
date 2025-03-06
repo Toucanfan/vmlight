@@ -5,11 +5,12 @@ import shutil
 from pathlib import Path
 
 from .args import parse_args
-from .xen import XenDeployAgent
+from .xen import XenDeployManager
 from .ssh import SshKeyManager
 from .image import ImageManager
 from .utils import require_root
 from .utils import ApplicationError
+from .vm import VmManager
 
 
 def get_config():
@@ -32,6 +33,7 @@ def get_config():
         },
         "xen": {
             "conf_dir": "/etc/xen",
+            "xl_path": "/usr/sbin/xl",
             "pvgrub_path": "/usr/lib/xen/bin/pvgrub",
         },
     }
@@ -67,7 +69,7 @@ def deploy(args, config, subparser):
             )
     require_root()
     if args.type == "xen":
-        agent = XenDeployAgent(args, config)
+        agent = XenDeployManager(args, config)
 
     elif args.type == "kvm":
         raise ApplicationError("Deploying a KVM instance is not supported yet.")
@@ -119,6 +121,25 @@ def manage_ssh_keys(args, config, subparser):
         subparser.error("No valid argument provided.")
 
 
+def manage_vms(args, config, subparser):
+    """
+    Run the 'vm' command.
+    """
+    vm_manager = VmManager(config)
+    if args.list:
+        vm_manager.list_instances()
+    elif args.start:
+        vm_manager.start_instance(args.start)
+    elif args.stop:
+        vm_manager.stop_instance(args.stop)
+    elif args.restart:
+        vm_manager.restart_instance(args.restart)
+    elif args.delete:
+        vm_manager.delete_instance(args.delete)
+    else:
+        subparser.error("No valid argument provided.")
+
+
 def check_environment():
     required_binaries = ["guestmount"]
     for binary in required_binaries:
@@ -138,6 +159,8 @@ def main():
             manage_images(args, config, subparsers["image"])
         elif args.command == "ssh-keys":
             manage_ssh_keys(args, config, subparsers["ssh-keys"])
+        elif args.command == "vm":
+            manage_vms(args, config, subparsers["vm"])
         else:
             parser.print_help()
 

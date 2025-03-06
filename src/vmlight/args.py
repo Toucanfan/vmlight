@@ -42,6 +42,15 @@ def add_image_args(subparser, config):
     subparser.add_argument("--list", action="store_true")
 
 
+def add_vm_args(subparser, config):
+    mtx_group = subparser.add_mutually_exclusive_group()
+    mtx_group.add_argument("--list", action="store_true")
+    mtx_group.add_argument("--start", metavar="VM_ID")
+    mtx_group.add_argument("--stop", metavar="VM_ID")
+    mtx_group.add_argument("--restart", metavar="VM_ID")
+    mtx_group.add_argument("--delete", metavar="VM_ID")
+
+
 def parse_args(config):
     """
     Parse the command line arguments.
@@ -76,5 +85,9 @@ def parse_args(config):
     image_parser = subparsers.add_parser("image", help="Manage OS images")
     add_image_args(image_parser, config)
     subparser_dict["image"] = image_parser
+
+    vm_parser = subparsers.add_parser("vm", help="Manage VMs")
+    add_vm_args(vm_parser, config)
+    subparser_dict["vm"] = vm_parser
 
     return (parser.parse_args()), parser, subparser_dict

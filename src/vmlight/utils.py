@@ -19,7 +19,7 @@ class ApplicationError(VmlightError):
     """
 
 
-def sh(cmd: str, error_ok: bool = False):
+def sh(cmd: str, error_ok: bool = False) -> str:
     """
     Execute a command and return the output.
     """
@@ -29,7 +29,7 @@ def sh(cmd: str, error_ok: bool = False):
     except subprocess.CalledProcessError as e:
         if not error_ok:
             raise ApplicationError(f"Command failed: {cmd}: return code {e.returncode}")
-        return None
+        return ""
 
 
 def require_root():
