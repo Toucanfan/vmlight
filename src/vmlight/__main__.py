@@ -1,10 +1,13 @@
-import argparse
 import configparser
 import os
 import sys
 import shutil
+from pathlib import Path
 
+from .args import parse_args
 from .xen import XenDeployAgent
+from .ssh import SshKeyManager
+from .utils import require_root
 
 
 def get_config():
@@ -51,54 +54,16 @@ def get_config():
     return config_dict
 
 
-def parse_args(config):
+def deploy(args, config, subparser):
     """
-    Parse the command line arguments.
+    Run the 'deploy' command.
     """
-    parser = argparse.ArgumentParser(
-        description="""
-        This program is used as a unified manager of Xen, KVM
-        and systemd-nspawn instances.
-        It is used mainly for deployment and configuration,
-        but also supports basic monitoring and management."""
-    )
-    parser.add_argument("--version", action="version", version="%(prog)s 0.1")
-    parser.add_argument(
-        "-t", "--type", default=config["deploy"]["type"], help="Type of the instance"
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Commands")
-    deploy_parser = subparsers.add_parser("deploy", help="Deploy a new instance")
-    deploy_parser.add_argument(
-        "-i", "--interactive", action="store_true", help="Run in interactive mode"
-    )
-    deploy_parser.add_argument("--name", required=True, help="Name of the instance")
-    deploy_parser.add_argument("--image", required=True, help="Name of the image")
-    deploy_parser.add_argument("--ip", required=True, help="IP address of the instance")
-    deploy_parser.add_argument(
-        "--disk-size",
-        default=config["deploy"]["disk_size"],
-        help="Disk size of the instance",
-    )
-    deploy_parser.add_argument(
-        "--memory",
-        default=config["deploy"]["memory"],
-        help="Memory assigned to the instance",
-    )
-    deploy_parser.add_argument(
-        "--vcpus",
-        default=config["deploy"]["vcpus"],
-        help="Number of CPUs assigned to the instance",
-    )
-    deploy_parser.add_argument(
-        "--ssh-key", action="append", help="SSH key for the instance"
-    )
-    list_images_parser = subparsers.add_parser(
-        "list-images", help="List available images"
-    )
-    return parser.parse_args()
-
-
-def deploy(args, config):
+    if not args.interactive:
+        if not (args.name and args.image and args.ip):
+            subparser.error(
+                "The following arguments are required for non-interactive mode: --name, --image, --ip"
+            )
+    require_root()
     if args.type == "xen":
         agent = XenDeployAgent(args, config)
         agent.deploy()
@@ -110,13 +75,30 @@ def deploy(args, config):
 
 
 def list_images(config):
+    """
+    Run the 'list-images' command.
+    """
     print("Listing available images")
 
 
-def require_root():
-    if os.geteuid() != 0:
-        print("Not running as root, aborting.")
-        sys.exit(1)
+def manage_ssh_keys(args, config, subparser):
+    """
+    Run the 'ssh-keys' command.
+    """
+    manager = SshKeyManager(config)
+    if args.add:
+        require_root()
+        manager.add_key(args.add)
+    elif args.add_file:
+        require_root()
+        manager.add_key_from_file(Path(args.add_file))
+    elif args.remove:
+        require_root()
+        manager.remove_key(args.remove)
+    elif args.list:
+        manager.list_keys()
+    else:
+        subparser.error("No valid argument provided.")
 
 
 def check_environment():
@@ -130,12 +112,13 @@ def check_environment():
 def main():
     check_environment()
     config = get_config()
-    args = parse_args(config)
+    args, subparsers = parse_args(config)
     if args.command == "deploy":
-        require_root()
-        deploy(args, config)
-    elif args.command == "list-images":
+        deploy(args, config, subparsers["deploy"])
+    elif args.command == "image":
         list_images(config)
+    elif args.command == "ssh-keys":
+        manage_ssh_keys(args, config, subparsers["ssh-keys"])
 
 
 if __name__ == "__main__":
