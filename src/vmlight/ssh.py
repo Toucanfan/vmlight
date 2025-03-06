@@ -31,7 +31,7 @@ class SshKeyManager:
                 raise ValueError(
                     f"A key with the name {key_name} already exists in the store."
                 )
-        self.keys.append([key_type, key, key_name])
+        self.keys.append([key_type, key, key_name])  # type: ignore
         self._write_key_list()
 
     def add_key_from_file(self, file: Path):
