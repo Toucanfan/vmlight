@@ -58,7 +58,7 @@ class SshKeyManager:
         """
         List all SSH keys in the store.
         """
-        print(f"{'NAME':<30} {'TYPE':<10} {'FINGERPRINT'}")
+        print(f"{'NAME':<30} {'TYPE':<10} {'KEY SNIPPET'}")
         for k in self.keys:
-            fingerprint = k[1][:16]  # Shorten the fingerprint for display
-            print(f"{k[2]:<30} {k[0]:<10} {fingerprint}")
+            key_part = k[1][:10] + "..." + k[1][-10:]
+            print(f"{k[2]:<30} {k[0]:<10} {key_part}")
