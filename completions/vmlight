@@ -5,6 +5,22 @@ _vmlight() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
+    # Function to filter files for image add command - only shows .qcow2, .img files and directories
+    _filter_image_files() {
+        # Enable filename completion
+        compopt -o filenames
+        
+        # Get directories first
+        local dirs=( $(compgen -d -- "$1") )
+        
+        # Get .qcow2 and .img files
+        local qcow2_files=( $(compgen -f -X '!*.qcow2' -- "$1") )
+        local img_files=( $(compgen -f -X '!*.img' -- "$1") )
+        
+        # Combine results
+        COMPREPLY=( "${dirs[@]}" "${qcow2_files[@]}" "${img_files[@]}" )
+    }
+    
     # Main commands
     commands="deploy ssh-keys image"
     
@@ -37,8 +53,8 @@ _vmlight() {
             return 0
             ;;
         image)
-            # Options for image command (currently empty in the code)
-            local image_opts=""
+            # Options for image command
+            local image_opts="--add --remove --list"
             COMPREPLY=( $(compgen -W "${image_opts}" -- "${cur}") )
             return 0
             ;;
@@ -57,6 +73,26 @@ _vmlight() {
             COMPREPLY=( $(compgen -f -- "${cur}") )
             return 0
             ;;
+        --add)
+            # Determine which command we're in
+            for ((i=0; i < ${#COMP_WORDS[@]}; i++)); do
+                if [[ "${COMP_WORDS[i]}" == "image" ]]; then
+                    # Complete with .qcow2 and .img files only, plus directories
+                    _filter_image_files "${cur}"
+                    return 0
+                fi
+            done
+            
+            # Default file completion if not in image context
+            compopt -o filenames
+            COMPREPLY=( $(compgen -f -- "${cur}") )
+            return 0
+            ;;
+        --remove)
+            # Could complete with available images or keys depending on context
+            # We'll use context detection below
+            return 0
+            ;;
     esac
     
     # Check for --add-file completion in non-adjacent position
@@ -68,6 +104,42 @@ _vmlight() {
             return 0
         fi
     done
+    
+    # Check for image --add in non-adjacent position
+    for ((i=1; i < ${#COMP_WORDS[@]}-1; i++)); do
+        if [[ "${COMP_WORDS[i]}" == "--add" && $((i+1)) == ${COMP_CWORD} ]]; then
+            # Check if we're in the image command context
+            for ((j=0; j < ${#COMP_WORDS[@]}; j++)); do
+                if [[ "${COMP_WORDS[j]}" == "image" ]]; then
+                    # Complete with .qcow2 and .img files only, plus directories
+                    _filter_image_files "${cur}"
+                    return 0
+                fi
+            done
+            
+            # Not in image context, use default file completion
+            compopt -o filenames
+            COMPREPLY=( $(compgen -f -- "${cur}") )
+            return 0
+        fi
+    done
+    
+    # Check for context-dependent --remove completions
+    if [[ "${prev}" == "--remove" ]]; then
+        # Determine which command we're in
+        for ((i=0; i < ${#COMP_WORDS[@]}; i++)); do
+            case "${COMP_WORDS[i]}" in
+                image)
+                    # Could complete with available image names if we had a way to list them
+                    return 0
+                    ;;
+                ssh-keys)
+                    # Could complete with available SSH key names if we had a way to list them
+                    return 0
+                    ;;
+            esac
+        done
+    fi
     
     # Check if we're in a subcommand context
     for ((i=0; i < ${#COMP_WORDS[@]}; i++)); do

@@ -7,6 +7,7 @@ from pathlib import Path
 from .args import parse_args
 from .xen import XenDeployAgent
 from .ssh import SshKeyManager
+from .image import ImageManager
 from .utils import require_root
 
 
@@ -74,11 +75,21 @@ def deploy(args, config, subparser):
         print("Deploying a systemd-nspawn instance")
 
 
-def list_images(config):
+def manage_images(args, config, subparser):
     """
-    Run the 'list-images' command.
+    Run the 'image' command.
     """
-    print("Listing available images")
+    image_manager = ImageManager(config)
+    if args.list:
+        image_manager.list()
+    elif args.add:
+        require_root()
+        image_manager.add(Path(args.add))
+    elif args.remove:
+        require_root()
+        image_manager.remove(args.remove)
+    else:
+        subparser.error("No valid argument provided.")
 
 
 def manage_ssh_keys(args, config, subparser):
@@ -116,7 +127,7 @@ def main():
     if args.command == "deploy":
         deploy(args, config, subparsers["deploy"])
     elif args.command == "image":
-        list_images(config)
+        manage_images(args, config, subparsers["image"])
     elif args.command == "ssh-keys":
         manage_ssh_keys(args, config, subparsers["ssh-keys"])
 

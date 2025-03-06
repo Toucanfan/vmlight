@@ -36,7 +36,9 @@ def add_ssh_key_args(subparser: ArgumentParser, config):
 
 
 def add_image_args(subparser, config):
-    pass
+    subparser.add_argument("--add", metavar="IMAGE_FILE")
+    subparser.add_argument("--remove", metavar="IMAGE_NAME")
+    subparser.add_argument("--list", action="store_true")
 
 
 def parse_args(config):
@@ -61,7 +63,7 @@ def parse_args(config):
     deploy_parser = subparsers.add_parser(
         "deploy",
         help="Deploy a new instance",
-        usage="%(prog)s [-i] [OPTIONS]",
+        usage="%(prog)s [-h] [-i] [OPTIONS]",
     )
     add_deploy_args(deploy_parser, config)
     subparser_dict["deploy"] = deploy_parser

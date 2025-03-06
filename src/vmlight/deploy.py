@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from .image import ImageManager
 from .utils import sh
 
 
@@ -20,10 +21,10 @@ class DeployAgent:
         self.instances_dir.mkdir(parents=True, exist_ok=True)
         self.image_dir = Path(self.config["general"]["image_dir"]).absolute()
         self.image_dir.mkdir(parents=True, exist_ok=True)
-        self.instance_name = self.args.deploy.name
+        self.instance_name = self.args.name
         self.vm_id = self.get_available_vm_id()
         self.instance_dir = self.instances_dir / f"{self.vm_id}-{self.instance_name}"
-        self.disk_file = self.instance_dir / f"root{self.args.deploy.image.suffix}"
+        self.disk_file = self.instance_dir / f"root{Path(self.args.image).suffix}"
         self.mount_point = self.instance_dir / "mnt"
 
     def get_available_vm_id(self):
@@ -71,7 +72,8 @@ class DeployAgent:
         """
         Copy the image to the instance directory.
         """
-        src_file = self.image_dir / Path(self.args.deploy.image)
+        image_manager = ImageManager(self.config)
+        src_file = image_manager.get_path_by_name(self.args.image)
         dst_file = self.disk_file
         sh(f"cp {src_file} {dst_file}")
 
@@ -79,7 +81,7 @@ class DeployAgent:
         """
         Resize the disk to the specified size.
         """
-        sh(f"qemu-img resize {self.disk_file} {self.args.deploy.disk_size}")
+        sh(f"qemu-img resize {self.disk_file} {self.args.disk_size}")
 
     def mount_disk(self):
         """
@@ -114,11 +116,11 @@ class DeployAgent:
         available_keys = {}
         ssh_keys = []
         for line in available_key_file:
-            key_type, _, key_name = line.split(" ")
+            key_type, _, key_name = line.split(" ", maxsplit=2)
             if not key_type in ["ssh-rsa", "ssh-ed25519"]:
                 raise ValueError(f"Invalid key type: {key_type}")
             available_keys[key_name] = line
-        for name in self.args.deploy["ssh_key"]:
+        for name in self.args.ssh_key:
             if name not in available_keys:
                 raise ValueError(f"SSH key not found: {name}")
             ssh_keys.append(available_keys[name])
@@ -128,7 +130,7 @@ class DeployAgent:
         """
         Set the instance hostname.
         """
-        hostname = self.args.deploy["name"]
+        hostname = self.args.name
         with open(self.mount_point / "etc/hostname", "w") as f:
             f.write(hostname)
 
