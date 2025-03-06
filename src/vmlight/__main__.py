@@ -9,6 +9,7 @@ from .xen import XenDeployAgent
 from .ssh import SshKeyManager
 from .image import ImageManager
 from .utils import require_root
+from .utils import ApplicationError
 
 
 def get_config():
@@ -67,12 +68,18 @@ def deploy(args, config, subparser):
     require_root()
     if args.type == "xen":
         agent = XenDeployAgent(args, config)
-        agent.deploy()
 
     elif args.type == "kvm":
-        print("Deploying a KVM instance")
+        raise ApplicationError("Deploying a KVM instance is not supported yet.")
     elif args.type == "systemd-nspawn":
-        print("Deploying a systemd-nspawn instance")
+        raise ApplicationError(
+            "Deploying a systemd-nspawn instance is not supported yet."
+        )
+
+    if args.interactive:
+        agent.interactive_deploy()
+    else:
+        agent.deploy()
 
 
 def manage_images(args, config, subparser):
@@ -123,13 +130,20 @@ def check_environment():
 def main():
     check_environment()
     config = get_config()
-    args, subparsers = parse_args(config)
-    if args.command == "deploy":
-        deploy(args, config, subparsers["deploy"])
-    elif args.command == "image":
-        manage_images(args, config, subparsers["image"])
-    elif args.command == "ssh-keys":
-        manage_ssh_keys(args, config, subparsers["ssh-keys"])
+    args, parser, subparsers = parse_args(config)
+    try:
+        if args.command == "deploy":
+            deploy(args, config, subparsers["deploy"])
+        elif args.command == "image":
+            manage_images(args, config, subparsers["image"])
+        elif args.command == "ssh-keys":
+            manage_ssh_keys(args, config, subparsers["ssh-keys"])
+        else:
+            parser.print_help()
+
+    except ApplicationError as e:
+        print(f"{parser.prog}: error: {e.message}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

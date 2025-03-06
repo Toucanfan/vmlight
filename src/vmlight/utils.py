@@ -3,12 +3,33 @@ import os
 import sys
 
 
-def sh(cmd: str):
+class VmlightError(Exception):
+    """
+    Base class for all Vmlight exceptions.
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+
+class ApplicationError(VmlightError):
+    """
+    Exception raised for errors in the application.
+    """
+
+
+def sh(cmd: str, error_ok: bool = False):
     """
     Execute a command and return the output.
     """
     cmdlist = cmd.split(" ")
-    return subprocess.check_output(cmdlist).decode("utf-8")
+    try:
+        return subprocess.check_output(cmdlist).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        if not error_ok:
+            raise ApplicationError(f"Command failed: {cmd}: return code {e.returncode}")
+        return None
 
 
 def require_root():

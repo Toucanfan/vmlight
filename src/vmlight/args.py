@@ -1,3 +1,4 @@
+from .utils import ApplicationError
 from argparse import ArgumentParser
 
 
@@ -76,4 +77,4 @@ def parse_args(config):
     add_image_args(image_parser, config)
     subparser_dict["image"] = image_parser
 
-    return parser.parse_args(), subparser_dict
+    return (parser.parse_args()), parser, subparser_dict

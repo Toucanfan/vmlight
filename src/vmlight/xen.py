@@ -1,3 +1,4 @@
+from .utils import ApplicationError
 from pathlib import Path
 from . import deploy
 
@@ -46,22 +47,25 @@ Destination={gateway}/32
 """
 
 
-class XenDeployAgent(deploy.DeployAgent):
+class XenDeployAgent(deploy.DeployManager):
     def __init__(self, args, config):
         if not Path("/usr/sbin/xl").exists():
-            raise EnvironmentError("xl toolstack is not installed.")
+            raise ApplicationError("xl toolstack is not installed.")
 
         with open("/proc/xen/capabilities", "r") as f:
             if "control_d" not in f.read():
-                raise EnvironmentError("Xen hypervisor is not running.")
+                raise ApplicationError("Xen hypervisor is not running.")
+
+        self.xenconf_dir = Path(config["xen"]["conf_dir"]).absolute()
+        if not self.xenconf_dir.exists():
+            raise ApplicationError(
+                f"Xen configuration directory does not exist: {self.xenconf_dir}"
+            )
 
         super().__init__(args, config)
 
-        self.xenconf_dir = Path(self.config["xen"]["xenconf_dir"]).absolute()
-        if not self.xenconf_dir.exists():
-            raise EnvironmentError(
-                f"Xen configuration directory does not exist: {self.xenconf_dir}"
-            )
+    def _setup_instance_paths(self):
+        super()._setup_instance_paths()
         self.instance_config_file = self.instance_dir / "xen_vm.cfg"
         self.xen_autostart_dir = self.xenconf_dir / "auto"
         self.xen_autostart_file = (
@@ -73,17 +77,18 @@ class XenDeployAgent(deploy.DeployAgent):
         disk_format = "qcow2" if disk_format == "qcow" else disk_format
         disk_format = "raw" if disk_format == "img" else disk_format
         if disk_format not in ["qcow2", "raw"]:
-            raise ValueError(f"Unsupported disk format: {disk_format}")
+            raise ApplicationError(f"Unsupported disk format: {disk_format}")
 
         with open(self.instance_config_file, "w") as f:
             f.write(
                 XENCFG_TEMPLATE.format(
                     vm_id=self.vm_id,
                     name=self.instance_name,
-                    memory=self.args.deploy["memory"],
-                    vcpus=self.args.deploy["vcpus"],
-                    ip=self.args.deploy["ip"],
-                    disk_image=self.disk_file,
+                    memory=self.args["memory"],
+                    vcpus=self.args["vcpus"],
+                    ip=self.args["ip"],
+                    disk_image=self.disk_file.absolute().as_posix(),
+                    disk_format=disk_format,
                     pvgrub_path=self.config["xen"]["pvgrub_path"],
                 )
             )
@@ -97,7 +102,7 @@ class XenDeployAgent(deploy.DeployAgent):
         network_config_file.parent.mkdir(parents=True, exist_ok=True)
         network_config_file.write_text(
             NETWORK_CONFIG_TEMPLATE.format(
-                ip=self.args.deploy["ip"],
+                ip=self.args["ip"],
                 gateway=self.config["deploy"]["default_gateway"],
             )
         )

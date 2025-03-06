@@ -1,3 +1,4 @@
+from .utils import ApplicationError
 from pathlib import Path
 
 
@@ -28,7 +29,7 @@ class SshKeyManager:
         key_type, key, key_name = key_text.split(" ", maxsplit=2)
         for k in self.keys:
             if k[2] == key_name:
-                raise ValueError(
+                raise ApplicationError(
                     f"A key with the name {key_name} already exists in the store."
                 )
         self.keys.append([key_type, key, key_name])  # type: ignore
@@ -52,13 +53,22 @@ class SshKeyManager:
                 self.keys.pop(i)
                 self._write_key_list()
                 return
-        raise ValueError(f"Key with name {key_name} not found in the store.")
+        raise ApplicationError(f"Key with name {key_name} not found in the store.")
 
     def list_keys(self):
         """
         List all SSH keys in the store.
         """
-        print(f"{'NAME':<30} {'TYPE':<10} {'KEY SNIPPET'}")
-        for k in self.keys:
+        print(f"{'INDEX':<6} {'NAME':<30} {'TYPE':<10} {'KEY SNIPPET'}")
+        for index, k in enumerate(self.keys, start=1):
             key_part = k[1][:10] + "..." + k[1][-10:]
-            print(f"{k[2]:<30} {k[0]:<10} {key_part}")
+            print(f"{index:<6} {k[2]:<30} {k[0]:<10} {key_part}")
+
+    def get_key_by_name(self, key_name: str, as_text: bool = False):
+        """
+        Get an SSH key by name.
+        """
+        for k in self.keys:
+            if k[2] == key_name:
+                return f"{k[0]} {k[1]} {k[2]}" if as_text else k
+        raise ApplicationError(f"Key with name {key_name} not found in the store.")

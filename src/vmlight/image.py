@@ -1,3 +1,4 @@
+from .utils import ApplicationError
 from pathlib import Path
 from itertools import chain
 
@@ -19,26 +20,25 @@ class ImageManager:
         """
         List all images in the image directory.
         """
-        for image in self.images:
-            print(f"{'NAME':<40} {'TYPE'}")
-            for image in self.images:
-                name = image.stem
-                image_type = image.suffix[1:].upper()
-                print(f"{name:<40} {image_type}")
+        print(f"{'INDEX':<6} {'NAME':<40} {'TYPE'}")
+        for index, image in enumerate(self.images, start=1):
+            name = image.stem
+            image_type = image.suffix[1:].upper()
+            print(f"{index:<6} {name:<40} {image_type}")
 
     def add(self, image_path: Path):
         """
         Add an image to the image directory.
         """
         if not image_path.exists():
-            raise ValueError(f"Image file {image_path} does not exist.")
+            raise ApplicationError(f"Image file {image_path} does not exist.")
         image_name = image_path.stem
         image_type = image_path.suffix[1:]
         if image_type not in ["qcow2", "img"]:
-            raise ValueError(f"Invalid image type: {image_type}")
+            raise ApplicationError(f"Invalid image type: {image_type}")
         dst_path = self.image_dir / f"{image_name}.{image_type}"
         if dst_path.exists():
-            raise ValueError(f"Image {image_name} already exists.")
+            raise ApplicationError(f"Image {image_name} already exists.")
         self.image_dir.mkdir(parents=True, exist_ok=True)
         sh(f"cp {image_path} {dst_path}")
         self.images = self._get_images()
@@ -49,9 +49,9 @@ class ImageManager:
         """
         image_search = list(self.image_dir.glob(f"{image_name}.*"))
         if not image_search:
-            raise ValueError(f"Image {image_name} does not exist.")
+            raise ApplicationError(f"Image {image_name} does not exist.")
         if len(image_search) > 1:
-            raise ValueError(
+            raise ApplicationError(
                 f"Multiple images found for {image_name} (should not happen)."
             )
         image_path = image_search[0]
@@ -65,4 +65,4 @@ class ImageManager:
         for image in self.images:
             if image.stem == image_name:
                 return image
-        raise ValueError(f"Image {image_name} does not exist.")
+        raise ApplicationError(f"Image {image_name} does not exist.")
