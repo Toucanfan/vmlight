@@ -1,6 +1,8 @@
-from .utils import ApplicationError
-from pathlib import Path
+from .utils import ApplicationError, sh
+from .helpers import VmBackendHelper
 from . import deploy
+from pathlib import Path
+import subprocess
 
 XENCFG_TEMPLATE = """
 # This configures a PVH rather than PV guest
@@ -45,6 +47,75 @@ Gateway={gateway}
 [Route]
 Destination={gateway}/32
 """
+
+
+class XenVmHelper(VmBackendHelper):
+    def __init__(self, vm, config):
+        super().__init__(vm, config)
+        self.xl_path = Path(config["xen"]["xl_path"]).absolute()
+        self.instances_dir = Path(config["general"]["instances_dir"]).absolute()
+
+    def _get_xen_domain_id(self):
+        """
+        Get the domain ID of a Xen VM.
+        """
+        try:
+            result = sh(f"{self.xl_path} list")
+            lines = result.splitlines()
+            for line in lines[1:]:  # Skip the header line
+                columns = line.split()
+                name = columns[0]
+                domain_id = columns[1]
+                if name.startswith(f"{self.vm.id}-"):
+                    return domain_id
+            raise ApplicationError(f"A running Xen VM with ID {self.vm.id} not found")
+        except subprocess.CalledProcessError as e:
+            raise ApplicationError(f"Error executing 'xl list': {e}") from e
+
+    def is_running(self):
+        try:
+            result = sh(f"{self.xl_path} list")
+            lines = result.splitlines()
+            for line in lines[1:]:  # Skip the header line
+                columns = line.split()
+                name = columns[0]
+                state = columns[4]
+                if name.startswith(f"{self.vm.id}-") and any(
+                    l in state for l in ["r", "b"]
+                ):
+                    return True
+            return False
+        except subprocess.CalledProcessError as e:
+            raise ApplicationError(f"Error executing 'xl list': {e}") from e
+
+    def start(self):
+        try:
+            sh(
+                f"{self.xl_path} create {self.instances_dir / f'{self.vm.id}-{self.vm.name}' / 'xen_vm.cfg'}"
+            )
+            return True
+        except ApplicationError as e:
+            raise ApplicationError(f"Error starting Xen VM: {e}") from e
+
+    def stop(self):
+        try:
+            domain_id = self._get_xen_domain_id()
+            sh(f"{self.xl_path} shutdown {domain_id}")
+            return True
+        except ApplicationError as e:
+            raise ApplicationError(f"Error stopping Xen VM: {e}") from e
+
+    def restart(self):
+        try:
+            domain_id = self._get_xen_domain_id()
+            sh(f"{self.xl_path} reboot {domain_id}")
+            return True
+        except ApplicationError as e:
+            raise ApplicationError(f"Error restarting Xen VM: {e}") from e
+
+    def delete(self):
+        auto_dir = Path(self.config["xen"]["conf_dir"]) / "auto"
+        sh(f"rm -f {auto_dir / f'{self.vm.id}-{self.vm.name}'}")
 
 
 class XenDeployManager(deploy.DeployManager):

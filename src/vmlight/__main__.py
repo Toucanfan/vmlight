@@ -70,13 +70,14 @@ def deploy(args, config, subparser):
     require_root()
     if args.type == "xen":
         agent = XenDeployManager(args, config)
-
     elif args.type == "kvm":
         raise ApplicationError("Deploying a KVM instance is not supported yet.")
     elif args.type == "systemd-nspawn":
         raise ApplicationError(
             "Deploying a systemd-nspawn instance is not supported yet."
         )
+    else:
+        raise ApplicationError(f"Unsupported instance type: {args.type}")
 
     if args.interactive:
         agent.interactive_deploy()
@@ -129,12 +130,16 @@ def manage_vms(args, config, subparser):
     if args.list:
         vm_manager.list_instances()
     elif args.start:
+        require_root()
         vm_manager.start_instance(args.start)
     elif args.stop:
+        require_root()
         vm_manager.stop_instance(args.stop)
     elif args.restart:
+        require_root()
         vm_manager.restart_instance(args.restart)
     elif args.delete:
+        require_root()
         vm_manager.delete_instance(args.delete)
     else:
         subparser.error("No valid argument provided.")
