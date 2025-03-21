@@ -1,6 +1,7 @@
 .PHONY: deb deb-install clean
 
 deb:
+	sudo apt-get build-dep ./
 	scripts/build_deb.sh
 
 deb-install: deb

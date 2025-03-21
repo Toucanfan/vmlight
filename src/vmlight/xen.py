@@ -136,6 +136,9 @@ class XenDeployManager(deploy.DeployManager):
             self.xen_autostart_dir / f"{self.vm_id}-{self.instance_name}"
         )
 
+    def _get_disk_file_name(self):
+        return "root.qcow2"
+
     def create_instance_config(self):
         disk_format = self.disk_file.suffix.lstrip(".").lower()
         disk_format = "qcow2" if disk_format == "qcow" else disk_format

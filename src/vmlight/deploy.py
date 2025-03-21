@@ -29,7 +29,7 @@ class DeployManager:
         self.instance_name = self.args["name"]
         self.vm_id = self.get_available_vm_id()
         self.instance_dir = self.instances_dir / f"{self.vm_id}-{self.instance_name}"
-        self.disk_file = self.instance_dir / "root.qcow2"
+        self.disk_file = self.instance_dir / self._get_disk_file_name()
         self.mount_point = self.instance_dir / "mnt"
 
     def get_available_vm_id(self):
@@ -162,10 +162,14 @@ class DeployManager:
         src_file = image_manager.get_path_by_name(self.args["image"])
         dst_file = self.disk_file
 
-        if src_file.suffix == ".img":
+        if src_file.suffix == ".img" and dst_file.suffix != ".qcow2":
             sh(f"qemu-img convert -O qcow2 {src_file} {dst_file}")
-        else:
+        elif src_file.suffix == ".qcow2" and dst_file.suffix == ".img":
+            sh(f"qemu-img convert -O raw {src_file} {dst_file}")
+        elif src_file.suffix == dst_file.suffix:
             sh(f"cp {src_file} {dst_file}")
+        else:
+            raise ApplicationError(f"Unsupported image format: {src_file.suffix}")
 
     def resize_disk(self):
         """
@@ -205,6 +209,12 @@ class DeployManager:
         for key_name in self.args["ssh_key"]:
             key = key_manager.get_key_by_name(key_name, as_text=True)
             guest_key_file.write_text(key)
+
+    def _get_disk_file_name(self):
+        """
+        Get the disk file name.
+        """
+        raise NotImplementedError("_get_disk_file_name")
 
     def set_instance_hostname(self):
         """
